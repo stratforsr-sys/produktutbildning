@@ -1,0 +1,2854 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produktutbildning - AI-Assistent | Telink</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0F1C2E;
+            --bg-secondary: #162337;
+            --bg-tertiary: #1D2D44;
+            --accent: #3DD68C;
+            --accent-dim: rgba(61, 214, 140, 0.15);
+            --accent-glow: rgba(61, 214, 140, 0.3);
+            --text-primary: #FFFFFF;
+            --text-secondary: #A4B3C7;
+            --text-muted: #6B7A8F;
+            --border: rgba(255, 255, 255, 0.08);
+            --success: #3DD68C;
+            --warning: #F5C946;
+            --error: #E85D5D;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Setup Screen */
+        .setup-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .setup-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .setup-container {
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .setup-logo {
+            width: 180px;
+            margin-bottom: 48px;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .setup-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease 0.1s forwards;
+        }
+
+        .setup-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 48px;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease 0.2s forwards;
+        }
+
+        .participants-form {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease 0.3s forwards;
+        }
+
+        .participant-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .participant-input-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .participant-number {
+            width: 32px;
+            height: 32px;
+            background: var(--accent-dim);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .participant-input {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-size: 1rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .participant-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .participant-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .add-participant-btn {
+            background: transparent;
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            font-size: 0.95rem;
+            width: 100%;
+        }
+
+        .add-participant-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .start-btn {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 12px;
+            padding: 16px 48px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            font-family: inherit;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+
+        /* Presentation Container */
+        .presentation {
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            display: none;
+        }
+
+        .presentation.active {
+            display: block;
+        }
+
+        /* Slides */
+        .slide {
+            position: absolute;
+            inset: 0;
+            padding: 60px 80px;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(30px);
+            transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s ease;
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+
+        .slide.prev {
+            transform: translateX(-30px);
+        }
+
+        /* Slide Header */
+        .slide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+
+        .slide-logo {
+            height: 28px;
+            opacity: 0.9;
+        }
+
+        .slide-meta {
+            text-align: right;
+        }
+
+        .chapter-badge {
+            background: var(--accent-dim);
+            color: var(--accent);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Slide Content */
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-width: 1200px;
+        }
+
+        .slide-title {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .slide-title .accent {
+            background: linear-gradient(135deg, var(--accent) 0%, #2AB873 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        .slide-subtitle {
+            font-size: 1.35rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            max-width: 800px;
+            margin-bottom: 40px;
+        }
+
+        /* Content Cards */
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 32px;
+        }
+
+        .content-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .content-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--accent-dim);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .card-text {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Bullet Points */
+        .bullet-list {
+            list-style: none;
+            margin-top: 24px;
+        }
+
+        .bullet-list li {
+            position: relative;
+            padding-left: 28px;
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        .bullet-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+        }
+
+        .bullet-list li strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .bullet-list.nested {
+            margin-left: 28px;
+            margin-top: 12px;
+        }
+
+        .bullet-list.nested li::before {
+            width: 6px;
+            height: 6px;
+            background: var(--text-muted);
+        }
+
+        /* Problem/Solution Layout */
+        .problem-solution-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 32px;
+            margin-top: 40px;
+        }
+
+        .ps-column {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 28px;
+            border: 1px solid var(--border);
+        }
+
+        .ps-column.symptom {
+            border-top: 3px solid var(--warning);
+        }
+
+        .ps-column.consequence {
+            border-top: 3px solid var(--error);
+        }
+
+        .ps-column.solution {
+            border-top: 3px solid var(--success);
+        }
+
+        .ps-header {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .ps-column.symptom .ps-header { color: var(--warning); }
+        .ps-column.consequence .ps-header { color: var(--error); }
+        .ps-column.solution .ps-header { color: var(--success); }
+
+        .ps-list {
+            list-style: none;
+        }
+
+        .ps-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .ps-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* Value Formula */
+        .formula-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin-top: 32px;
+        }
+
+        .formula-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .formula-step {
+            background: var(--bg-tertiary);
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-align: center;
+            flex: 1;
+        }
+
+        .formula-arrow {
+            color: var(--accent);
+            font-size: 1.5rem;
+        }
+
+        .formula-example {
+            background: var(--accent-dim);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-top: 20px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .formula-example-text {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* Quiz Styles */
+        .quiz-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .quiz-badge {
+            background: linear-gradient(135deg, var(--accent) 0%, #2AB873 100%);
+            color: var(--bg-primary);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .quiz-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .quiz-question {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 24px;
+        }
+
+        .question-type {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .question-text {
+            font-size: 1.4rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 32px;
+        }
+
+        .answer-reveal {
+            background: var(--accent-dim);
+            border-radius: 12px;
+            padding: 24px;
+            border-left: 4px solid var(--accent);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .answer-reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .answer-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .answer-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .answer-explanation {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .reveal-btn {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 10px;
+            padding: 14px 32px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            font-family: inherit;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .reveal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+
+        .reveal-btn.hidden {
+            display: none;
+        }
+
+        /* Score Assignment */
+        .score-assignment {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 24px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .score-assignment.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .score-btn {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 24px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .score-btn:hover {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .score-btn.selected {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        /* Leaderboard */
+        .leaderboard {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            min-width: 220px;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateX(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .leaderboard.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .leaderboard-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .leaderboard-list {
+            list-style: none;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+
+        .leaderboard-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .leaderboard-score {
+            background: var(--accent-dim);
+            color: var(--accent);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .leaderboard-item:first-child .leaderboard-score {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        /* Navigation */
+        .nav-controls {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 24px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--accent);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .nav-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Chapter Title Slide */
+        .chapter-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .chapter-number {
+            font-size: 6rem;
+            font-weight: 800;
+            color: var(--accent);
+            opacity: 0.3;
+            line-height: 1;
+            margin-bottom: 20px;
+        }
+
+        .chapter-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .chapter-description {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+        }
+
+        /* Two Column Layout */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            margin-top: 32px;
+        }
+
+        .column-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+
+        /* Process Steps */
+        .process-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 32px;
+        }
+
+        .process-step {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+        }
+
+        .step-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .step-description {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 32px;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+
+        .feature-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--accent);
+        }
+
+        .feature-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .feature-argument {
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 600;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: linear-gradient(135deg, var(--accent-dim) 0%, rgba(61, 214, 140, 0.05) 100%);
+            border: 1px solid var(--accent);
+            border-radius: 16px;
+            padding: 28px 32px;
+            margin-top: 32px;
+        }
+
+        .highlight-title {
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .highlight-text {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .slide {
+                padding: 40px 50px;
+            }
+
+            .slide-title {
+                font-size: 2.5rem;
+            }
+
+            .problem-solution-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .slide {
+                padding: 30px;
+            }
+
+            .slide-title {
+                font-size: 2rem;
+            }
+
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .leaderboard {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 20px;
+            }
+        }
+
+        /* Title Slide Specific */
+        .title-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: radial-gradient(ellipse at center, var(--bg-secondary) 0%, var(--bg-primary) 70%);
+        }
+
+        .title-slide .main-title {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .title-slide .main-subtitle {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+
+        .title-slide .title-logo {
+            width: 200px;
+            margin-bottom: 60px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Setup Screen -->
+    <div class="setup-screen" id="setupScreen">
+        <div class="setup-container">
+            <img src="logo.png" alt="Telink" class="setup-logo">
+            <h1 class="setup-title">Produktutbildning</h1>
+            <p class="setup-subtitle">Lägg till deltagare för att starta quiz-tävlingen</p>
+            
+            <div class="participants-form">
+                <div class="participant-inputs" id="participantInputs">
+                    <div class="participant-input-row">
+                        <span class="participant-number">1</span>
+                        <input type="text" class="participant-input" placeholder="Deltagarens namn" data-index="0">
+                    </div>
+                    <div class="participant-input-row">
+                        <span class="participant-number">2</span>
+                        <input type="text" class="participant-input" placeholder="Deltagarens namn" data-index="1">
+                    </div>
+                </div>
+                <button class="add-participant-btn" id="addParticipant">+ Lägg till deltagare</button>
+                <br><br>
+                <button class="start-btn" id="startPresentation">Starta utbildningen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="leaderboard" id="leaderboard">
+        <div class="leaderboard-title">Poängställning</div>
+        <ul class="leaderboard-list" id="leaderboardList"></ul>
+    </div>
+
+    <!-- Presentation -->
+    <div class="presentation" id="presentation">
+        
+        <!-- SLIDE 1: Title -->
+        <div class="slide title-slide" data-slide="1">
+            <img src="logo.png" alt="Telink" class="title-logo">
+            <h1 class="main-title">Produktutbildning</h1>
+            <p class="main-subtitle">AI-Assistent för säljteam</p>
+        </div>
+
+        <!-- ==================== KAPITEL 1: INTRO ==================== -->
+        
+        <!-- SLIDE 2: Chapter 1 Title -->
+        <div class="slide chapter-slide" data-slide="2" data-chapter="1">
+            <div class="chapter-number">01</div>
+            <h2 class="chapter-title">Varför denna utbildning</h2>
+            <p class="chapter-description">Förstå produkten rätt, sälj den rätt</p>
+        </div>
+
+        <!-- SLIDE 3: Problemet med produktkunskap -->
+        <div class="slide" data-slide="3" data-chapter="1">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 1</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Problemet med <span class="accent">produktkunskap</span></h2>
+                <p class="slide-subtitle">För mycket information skapar inte bättre säljare – det skapar osäkra säljare.</p>
+                
+                <div class="content-grid">
+                    <div class="content-card">
+                        <div class="card-icon">📚</div>
+                        <h3 class="card-title">Överinformation i sälj</h3>
+                        <p class="card-text">För mycket detaljer leder till otydligt värde för kunden. Säljaren vet allt, men kan inte förmedla varför det spelar roll.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">⚖️</div>
+                        <h3 class="card-title">Ojämn produktförståelse</h3>
+                        <p class="card-text">Olika säljare har olika bild av produkten. Det sänker konvertering och skapar otrygghet i teamet.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">🎯</div>
+                        <h3 class="card-title">Ny standard idag</h3>
+                        <p class="card-text">Lär allt – men välj rätt mängd information i rätt situation. Det är skillnaden mellan en bra och en exceptionell säljare.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: Målet med utbildningen -->
+        <div class="slide" data-slide="4" data-chapter="1">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 1</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Målet med utbildningen</h2>
+                <p class="slide-subtitle">Efter denna utbildning kommer du kunna sälja AI-Assistenten med trygghet och precision.</p>
+                
+                <ul class="bullet-list">
+                    <li><strong>Förstå varje scenario</strong> – Vad kunden faktiskt vill ha och vad vi levererar</li>
+                    <li><strong>Träna rätt mängd information</strong> – Kort, träffsäkert och relevant för situationen</li>
+                    <li><strong>Bli en starkare säljare</strong> – Tydligare argument och bättre kontroll över samtalet</li>
+                </ul>
+
+                <div class="highlight-box">
+                    <div class="highlight-title">💡 Kom ihåg</div>
+                    <p class="highlight-text">Anteckna din förståelse, inte ordagrant vad som sägs. Skriv ner det samma dag och läs igenom det dagen efter – då fastnar kunskapen.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: Quiz Kapitel 1 -->
+        <div class="slide" data-slide="5" data-chapter="1" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 1</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Kuggfråga</div>
+                        <p class="question-text">Vad är största risken med att ge kunden "all information på en gång"?</p>
+                        <div class="answer-reveal" id="answer-1-1">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">Överinformation som försvagar värdet</p>
+                            <p class="answer-explanation">Kunden får massor av detaljer, men förstår inte varför de ska köpa. Värdet drunknar i funktioner.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('1-1')">Visa svar</button>
+                    <div class="score-assignment" id="score-1-1">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: Quiz Kapitel 1 - Fråga 2 -->
+        <div class="slide" data-slide="6" data-chapter="1" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 1</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Scenario</div>
+                        <p class="question-text">Kunden frågar direkt: "Hur fungerar den?" – Vad börjar du med?</p>
+                        <div class="answer-reveal" id="answer-1-2">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">Varför den finns (värdet), sedan hur</p>
+                            <p class="answer-explanation">"Why before how" – ge riktning och relevans innan tekniska detaljer. Annars tappar du kontrollen över samtalet.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('1-2')">Visa svar</button>
+                    <div class="score-assignment" id="score-1-2">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== KAPITEL 2: VISION ==================== -->
+        
+        <!-- SLIDE 7: Chapter 2 Title -->
+        <div class="slide chapter-slide" data-slide="7" data-chapter="2">
+            <div class="chapter-number">02</div>
+            <h2 class="chapter-title">Visionen</h2>
+            <p class="chapter-description">Vad vi egentligen säljer</p>
+        </div>
+
+        <!-- SLIDE 8: AI-Assistenten är en vision -->
+        <div class="slide" data-slide="8" data-chapter="2">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 2</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">AI-Assistenten är inte en produkt<br><span class="accent">Det är en vision</span></h2>
+                <p class="slide-subtitle">Ingen köper en "samtalshanterare". Kunder köper resultat, känslor och förändring.</p>
+                
+                <div class="content-grid">
+                    <div class="content-card">
+                        <div class="card-icon">📈</div>
+                        <h3 class="card-title">Växa med mindre kapital</h3>
+                        <p class="card-text">Effektivitet utan mer personal. Skala verksamheten utan att skala kostnaderna.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">🏗️</div>
+                        <h3 class="card-title">Struktur som skapar värde</h3>
+                        <p class="card-text">Ordning ger lugn. Lugn ger bättre beslut. Bättre beslut ger bättre affärer.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">🌅</div>
+                        <h3 class="card-title">En ny vardag</h3>
+                        <p class="card-text">Att sitta med familjen på kvällen utan att telefonen stör. Det är vad vi säljer.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 9: Värdet i mänskliga termer -->
+        <div class="slide" data-slide="9" data-chapter="2">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 2</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Värdet i <span class="accent">mänskliga termer</span></h2>
+                <p class="slide-subtitle">Översätt alltid funktioner till vad det faktiskt betyder för kundens vardag.</p>
+                
+                <div class="two-column">
+                    <div>
+                        <h3 class="column-title">Vad vi säger</h3>
+                        <ul class="bullet-list">
+                            <li>"Svarar 24/7"</li>
+                            <li>"Hanterar kö automatiskt"</li>
+                            <li>"Integrerar med era system"</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="column-title">Vad kunden hör</h3>
+                        <ul class="bullet-list">
+                            <li><strong>"Jag får tillbaka kvällarna"</strong> – Mindre avbrott från telefonen</li>
+                            <li><strong>"Fler affärer in"</strong> – Inga missade samtal</li>
+                            <li><strong>"Stressvänlig organisation"</strong> – Bättre bemötande, bättre flöden</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 10: Quiz Kapitel 2 -->
+        <div class="slide" data-slide="10" data-chapter="2" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 2</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Scenario</div>
+                        <p class="question-text">Kunden säger: "Vi vill bara slippa kö". Vad är din vision-vinkel?</p>
+                        <div class="answer-reveal" id="answer-2-1">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">"Ni slipper avbrott + missade affärer, och får kontroll"</p>
+                            <p class="answer-explanation">Lyft effekten på vardagen och ROI – inte bara tekniken. Kunden vill veta vad det leder till, inte bara vad det gör.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('2-1')">Visa svar</button>
+                    <div class="score-assignment" id="score-2-1">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== KAPITEL 3: KUNDENS SMÄRTOR ==================== -->
+        
+        <!-- SLIDE 11: Chapter 3 Title -->
+        <div class="slide chapter-slide" data-slide="11" data-chapter="3">
+            <div class="chapter-number">03</div>
+            <h2 class="chapter-title">Kundens smärtor</h2>
+            <p class="chapter-description">Varför de bryr sig – och varför de köper</p>
+        </div>
+
+        <!-- SLIDE 12: Kommunikationsproblem -->
+        <div class="slide" data-slide="12" data-chapter="3">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 3</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title"><span class="accent">Kommunikations</span>problem</h2>
+                <p class="slide-subtitle">Det första företag märker – men sällan mäter.</p>
+                
+                <div class="problem-solution-grid">
+                    <div class="ps-column symptom">
+                        <div class="ps-header">Symptom</div>
+                        <ul class="ps-list">
+                            <li>Oprofessionellt intryck</li>
+                            <li>Lång svarstid</li>
+                            <li>Många missade samtal</li>
+                            <li>Ingen backup vid sjukdom/semester</li>
+                        </ul>
+                    </div>
+                    <div class="ps-column consequence">
+                        <div class="ps-header">Konsekvenser</div>
+                        <ul class="ps-list">
+                            <li>Intäktsförluster</li>
+                            <li>Sämre kundlojalitet</li>
+                            <li>Stress hos personalen</li>
+                            <li>Förlorade affärer</li>
+                        </ul>
+                    </div>
+                    <div class="ps-column solution">
+                        <div class="ps-header">Vår lösning</div>
+                        <ul class="ps-list">
+                            <li>Svarar direkt, dygnet runt</li>
+                            <li>Kopplar eller bokar automatiskt</li>
+                            <li>Ingen kund "försvinner"</li>
+                            <li>Alltid tillgänglig backup</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 13: Effektivitetsproblem -->
+        <div class="slide" data-slide="13" data-chapter="3">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 3</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title"><span class="accent">Effektivitets</span>problem</h2>
+                <p class="slide-subtitle">Tid som läcker – varje dag, varje vecka.</p>
+                
+                <div class="problem-solution-grid">
+                    <div class="ps-column symptom">
+                        <div class="ps-header">Symptom</div>
+                        <ul class="ps-list">
+                            <li>Personal fastnar i rutinfrågor</li>
+                            <li>Manuell bokning/avbokning</li>
+                            <li>Ständiga avbrott i arbetet</li>
+                            <li>Ingen central samtalslogg</li>
+                        </ul>
+                    </div>
+                    <div class="ps-column consequence">
+                        <div class="ps-header">Konsekvenser</div>
+                        <ul class="ps-list">
+                            <li>Tidsspill och stress</li>
+                            <li>Minskad produktivitet</li>
+                            <li>Svårt att prioritera</li>
+                            <li>Ineffektiva arbetsflöden</li>
+                        </ul>
+                    </div>
+                    <div class="ps-column solution">
+                        <div class="ps-header">Vår lösning</div>
+                        <ul class="ps-list">
+                            <li>Automatiserar rutinärenden</li>
+                            <li>Loggar samtal + statistik</li>
+                            <li>Bokar via integrerat system</li>
+                            <li>Frigör tid för fokusarbete</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 14: Bemanningsproblem -->
+        <div class="slide" data-slide="14" data-chapter="3">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 3</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title"><span class="accent">Bemannings</span>problem</h2>
+                <p class="slide-subtitle">Den omöjliga ekvationen: hög tillgänglighet till låg kostnad.</p>
+                
+                <div class="problem-solution-grid">
+                    <div class="ps-column symptom">
+                        <div class="ps-header">Symptom</div>
+                        <ul class="ps-list">
+                            <li>Sårbar vid sjukdom</li>
+                            <li>Dyrt vid toppbelastning</li>
+                            <li>Låg tillgänglighet utanför kontorstid</li>
+                            <li>Säsongsöverbelastning</li>
+                        </ul>
+                    </div>
+                    <div class="ps-column consequence">
+                        <div class="ps-header">Konsekvenser</div>
+                        <ul class="ps-list">
+                            <li>Kostnader stiger eller service sjunker</li>
+                            <li>Personal stress och övertid</li>
+                            <li>Risk för skadat varumärke</li>
+                            <li>Svårt att planera</li>
+                        </ul>
+                    </div>
+                    <div class="ps-column solution">
+                        <div class="ps-header">Vår lösning</div>
+                        <ul class="ps-list">
+                            <li>Alltid tillgänglig – inga sjukdagar</li>
+                            <li>Skalbar: 1 till 100 samtal samtidigt</li>
+                            <li>Täcker toppar, luncher, kvällar</li>
+                            <li>Bråkdel av en receptionistlön</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 15: Ekonomiska problem -->
+        <div class="slide" data-slide="15" data-chapter="3">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 3</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title"><span class="accent">Ekonomiska</span> problem</h2>
+                <p class="slide-subtitle">Det som inte mäts, kan inte förbättras.</p>
+                
+                <div class="problem-solution-grid">
+                    <div class="ps-column symptom">
+                        <div class="ps-header">Symptom</div>
+                        <ul class="ps-list">
+                            <li>Dyra lågvolymsrutiner</li>
+                            <li>Osynliga intäktsförluster</li>
+                            <li>Dolda interna kostnader</li>
+                        </ul>
+                    </div>
+                    <div class="ps-column consequence">
+                        <div class="ps-header">Konsekvenser</div>
+                        <ul class="ps-list">
+                            <li>Låg lönsamhet trots hög aktivitet</li>
+                            <li>Svårt att växa lönsamt</li>
+                            <li>Ingen insyn i vad som fungerar</li>
+                        </ul>
+                    </div>
+                    <div class="ps-column solution">
+                        <div class="ps-header">Vår lösning</div>
+                        <ul class="ps-list">
+                            <li>Mätbar ROI</li>
+                            <li>Räddar missade intäkter</li>
+                            <li>Fast månadskostnad – förutsägbart</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <div class="highlight-title">💰 Säljargument</div>
+                    <p class="highlight-text">Missade samtal är osynliga förluster. De flesta företag vet inte hur mycket de faktiskt tappar. Vår assistent gör förluster synliga – och stoppar dem.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 16: System- och processproblem -->
+        <div class="slide" data-slide="16" data-chapter="3">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 3</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">System- och <span class="accent">processproblem</span></h2>
+                <p class="slide-subtitle">När systemen inte pratar med varandra, tappar ni kunder.</p>
+                
+                <div class="problem-solution-grid">
+                    <div class="ps-column symptom">
+                        <div class="ps-header">Symptom</div>
+                        <ul class="ps-list">
+                            <li>System pratar inte med varandra</li>
+                            <li>Information tappas mellan steg</li>
+                            <li>Ingen uppföljning på ärenden</li>
+                            <li>Manuellt efterarbete</li>
+                        </ul>
+                    </div>
+                    <div class="ps-column consequence">
+                        <div class="ps-header">Konsekvenser</div>
+                        <ul class="ps-list">
+                            <li>Ineffektiva arbetsflöden</li>
+                            <li>Svårt att styra tillväxt</li>
+                            <li>Dålig struktur kring kunder</li>
+                        </ul>
+                    </div>
+                    <div class="ps-column solution">
+                        <div class="ps-header">Vår lösning</div>
+                        <ul class="ps-list">
+                            <li>Integration CRM/kalender/bokning</li>
+                            <li>Samtalslogg + analys</li>
+                            <li>Automatisk dataloggning</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 17: Quiz Kapitel 3 -->
+        <div class="slide" data-slide="17" data-chapter="3" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 3</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Kuggfråga</div>
+                        <p class="question-text">Vilken smärta är "osynlig" men kostar mest?</p>
+                        <div class="answer-reveal" id="answer-3-1">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">Missade samtal → tappade intäkter</p>
+                            <p class="answer-explanation">Företag mäter ofta inte vad de förlorar. Varje missat samtal kan vara en förlorad affär – men de ser det aldrig i sina siffror.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('3-1')">Visa svar</button>
+                    <div class="score-assignment" id="score-3-1">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 18: Quiz Kapitel 3 - Fråga 2 -->
+        <div class="slide" data-slide="18" data-chapter="3" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 3</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Scenario</div>
+                        <p class="question-text">Kunden säger: "Vi har redan en receptionist". Vilken smärta pressar du?</p>
+                        <div class="answer-reveal" id="answer-3-2">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">Toppbelastning + sårbarhet + 24/7 tillgänglighet</p>
+                            <p class="answer-explanation">AI-Assistenten ersätter inte – den täcker luckorna. Luncher, sjukdom, kvällar, toppar. Utan övertidskostnad.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('3-2')">Visa svar</button>
+                    <div class="score-assignment" id="score-3-2">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== KAPITEL 4: VÄRDE ==================== -->
+        
+        <!-- SLIDE 19: Chapter 4 Title -->
+        <div class="slide chapter-slide" data-slide="19" data-chapter="4">
+            <div class="chapter-number">04</div>
+            <h2 class="chapter-title">Värde</h2>
+            <p class="chapter-description">Det vi lovar – hårda och mjuka värden</p>
+        </div>
+
+        <!-- SLIDE 20: Hårda värden -->
+        <div class="slide" data-slide="20" data-chapter="4">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 4</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Hårda värden <span class="accent">(mätbara)</span></h2>
+                <p class="slide-subtitle">Det som kan mätas, kan bevisas. Det som kan bevisas, säljer.</p>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4 class="feature-title">📞 Färre missade samtal</h4>
+                        <p class="feature-description">Varje samtal tas emot, dygnet runt.</p>
+                        <p class="feature-argument">→ Mer intäkt, mindre läckage</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4 class="feature-title">⚡ Kortare svarstid</h4>
+                        <p class="feature-description">Direktsvar utan kö eller väntetid.</p>
+                        <p class="feature-argument">→ Fler konverteringar, nöjdare kunder</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4 class="feature-title">📅 Automatiserad bokning</h4>
+                        <p class="feature-description">Bokar och avbokar utan manuellt arbete.</p>
+                        <p class="feature-argument">→ Mindre admin, högre tempo</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4 class="feature-title">📋 Effektivare ärendehantering</h4>
+                        <p class="feature-description">Skapar tickets, uppdaterar, prioriterar.</p>
+                        <p class="feature-argument">→ Processer som skalar</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4 class="feature-title">📈 Skalbar kapacitet</h4>
+                        <p class="feature-description">Hanterar 1 eller 8 000 samtal/timme.</p>
+                        <p class="feature-argument">→ Toppar utan nyanställning</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4 class="feature-title">💵 Förutsägbar kostnad</h4>
+                        <p class="feature-description">Fast månadsmodell utan överraskningar.</p>
+                        <p class="feature-argument">→ Enklare budget, trygg ekonomi</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 21: Mjuka värden -->
+        <div class="slide" data-slide="21" data-chapter="4">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 4</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Mjuka värden <span class="accent">(som säljer)</span></h2>
+                <p class="slide-subtitle">Det som inte alltid mäts – men som avgör köpbeslutet.</p>
+                
+                <div class="content-grid">
+                    <div class="content-card">
+                        <div class="card-icon">🤝</div>
+                        <h3 class="card-title">Bättre kundupplevelse</h3>
+                        <p class="card-text">Professionellt, direkt och tryggt bemötande. Kunden känner sig sedd.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">🧘</div>
+                        <h3 class="card-title">Lägre stress i teamet</h3>
+                        <p class="card-text">Färre avbrott, bättre fokus. Personalen får göra det de är bra på.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">🏆</div>
+                        <h3 class="card-title">Starkare varumärke</h3>
+                        <p class="card-text">"Alltid tillgängliga" – ett löfte som bygger förtroende över tid.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">💬</div>
+                        <h3 class="card-title">Mänskligare bemötande</h3>
+                        <p class="card-text">Ton, känsla och situation. AI:n anpassar sig efter vem som ringer.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 22: Säljformeln -->
+        <div class="slide" data-slide="22" data-chapter="4">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 4</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Säljformeln för <span class="accent">värde</span></h2>
+                <p class="slide-subtitle">Två vägar till samma mål: från funktion till affärsresultat.</p>
+                
+                <div class="formula-container">
+                    <h4 style="color: var(--accent); margin-bottom: 20px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Formel 1: Funktion → Nytta → Effekt</h4>
+                    <div class="formula-row">
+                        <div class="formula-step">Funktion<br><span style="font-size: 0.85rem; color: var(--text-secondary);">"Svarar direkt"</span></div>
+                        <span class="formula-arrow">→</span>
+                        <div class="formula-step">Nytta<br><span style="font-size: 0.85rem; color: var(--text-secondary);">"Ingen väntan"</span></div>
+                        <span class="formula-arrow">→</span>
+                        <div class="formula-step">Effekt<br><span style="font-size: 0.85rem; color: var(--text-secondary);">"Färre tappade kunder"</span></div>
+                    </div>
+                </div>
+
+                <div class="formula-container" style="margin-top: 24px;">
+                    <h4 style="color: var(--accent); margin-bottom: 20px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Formel 2: Smärta → Konsekvens → Lösning</h4>
+                    <div class="formula-row">
+                        <div class="formula-step">Smärta<br><span style="font-size: 0.85rem; color: var(--text-secondary);">"Missade samtal"</span></div>
+                        <span class="formula-arrow">→</span>
+                        <div class="formula-step">Konsekvens<br><span style="font-size: 0.85rem; color: var(--text-secondary);">"Intäktsförlust"</span></div>
+                        <span class="formula-arrow">→</span>
+                        <div class="formula-step">Lösning<br><span style="font-size: 0.85rem; color: var(--text-secondary);">"24/7 + skalbarhet"</span></div>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <div class="highlight-title">🎯 Kom ihåg</div>
+                    <p class="highlight-text">Sälj ska alltid landa i <strong>effekt</strong> eller <strong>lösning</strong>. Nytta är vad som blir enklare. Effekt är affärsresultatet.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 23: Quiz Kapitel 4 -->
+        <div class="slide" data-slide="23" data-chapter="4" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 4</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Kuggfråga</div>
+                        <p class="question-text">Vad är skillnaden mellan "nytta" och "effekt"?</p>
+                        <div class="answer-reveal" id="answer-4-1">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">Nytta = vad som blir enklare. Effekt = affärsresultatet.</p>
+                            <p class="answer-explanation">Säljsamtalet ska alltid landa i effekt. "Ingen väntan" är nytta. "Färre tappade kunder" är effekten som driver köpbeslutet.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('4-1')">Visa svar</button>
+                    <div class="score-assignment" id="score-4-1">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 24: Quiz Kapitel 4 - Fråga 2 -->
+        <div class="slide" data-slide="24" data-chapter="4" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 4</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Scenario</div>
+                        <p class="question-text">Kunden vill "bara ha FAQ-hantering". Vilket värde missar de?</p>
+                        <div class="answer-reveal" id="answer-4-2">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">Intäktsräddning + avlastning + kontroll</p>
+                            <p class="answer-explanation">FAQ är en startpunkt, inte slutmålet. Den verkliga potentialen ligger i att rädda missade affärer, avlasta personalen och få full insyn i kundkommunikationen.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('4-2')">Visa svar</button>
+                    <div class="score-assignment" id="score-4-2">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== KAPITEL 5: KÄRNFUNKTIONER ==================== -->
+        
+        <!-- SLIDE 25: Chapter 5 Title -->
+        <div class="slide chapter-slide" data-slide="25" data-chapter="5">
+            <div class="chapter-number">05</div>
+            <h2 class="chapter-title">Kärnfunktioner</h2>
+            <p class="chapter-description">Vad AI-Assistenten faktiskt gör</p>
+        </div>
+
+        <!-- SLIDE 26: Intentanalys -->
+        <div class="slide" data-slide="26" data-chapter="5">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 5</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title"><span class="accent">Intent</span>analys</h2>
+                <p class="slide-subtitle">Det första steget i varje samtal – och det viktigaste.</p>
+                
+                <div class="two-column">
+                    <div>
+                        <h3 class="column-title">Hur det fungerar</h3>
+                        <ul class="bullet-list">
+                            <li><strong>Identifierar samtalets syfte</strong> – Bokning, ärende, akut, support, etc.</li>
+                            <li><strong>Väljer rätt flöde</strong> – Varje intent har ett förprogrammerat hanteringsflöde</li>
+                            <li><strong>Anpassningsbart</strong> – Kunden bestämmer hur varje intent ska hanteras</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="column-title">Säljargument</h3>
+                        <div class="highlight-box" style="margin-top: 0;">
+                            <p class="highlight-text">"Rätt hantering direkt från första sekund. Ingen felkoppling, ingen frustration. Kunden får hjälp snabbare och ni får nöjdare kunder."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 27: Intelligent routing -->
+        <div class="slide" data-slide="27" data-chapter="5">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 5</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Intelligent <span class="accent">routing</span></h2>
+                <p class="slide-subtitle">Rätt samtal till rätt person – automatiskt.</p>
+                
+                <div class="two-column">
+                    <div>
+                        <h3 class="column-title">Hur det fungerar</h3>
+                        <ul class="bullet-list">
+                            <li><strong>Känner till personalens styrkor</strong> – Vi lägger in kompetens och erfarenhet per person</li>
+                            <li><strong>Matchar ärendet</strong> – Assistenten avgör vem som är mest lämpad</li>
+                            <li><strong>Minskar felkopplingar</strong> – Rätt expert på rätt ärende från start</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="column-title">Säljargument</h3>
+                        <div class="highlight-box" style="margin-top: 0;">
+                            <p class="highlight-text">"Högre kvalitet per samtal. Era kunder slipper bli bollade runt. Era anställda får ärenden de faktiskt kan lösa."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 28: Köhantering + Skalbarhet -->
+        <div class="slide" data-slide="28" data-chapter="5">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 5</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Köhantering & <span class="accent">skalbarhet</span></h2>
+                <p class="slide-subtitle">Ingen väntar i onödan. Aldrig.</p>
+                
+                <div class="content-grid">
+                    <div class="content-card">
+                        <div class="card-icon">📞</div>
+                        <h3 class="card-title">Tar samtal direkt</h3>
+                        <p class="card-text">Även när växeln redan är upptagen. Ingen musik, inga knappval, ingen frustration.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">🔄</div>
+                        <h3 class="card-title">Försöker lösa eller eskalera</h3>
+                        <p class="card-text">Om personen inte kan svara, löser assistenten ärendet eller mejlar återuppringning.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">🚀</div>
+                        <h3 class="card-title">8 000 samtal/timme</h3>
+                        <p class="card-text">Obegränsad kapacitet. Toppbelastning utan stress, utan nyanställning, utan övertid.</p>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <div class="highlight-title">💡 Säljargument</div>
+                    <p class="highlight-text">"Köhantering är ofta det som skapar mest värde för våra kunder. Det är där de flesta affärer tappas – i väntetiden."</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 29: Mänsklig ton -->
+        <div class="slide" data-slide="29" data-chapter="5">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 5</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title"><span class="accent">Mänsklig</span> ton</h2>
+                <p class="slide-subtitle">AI som känns som er personal – inte som en robot.</p>
+                
+                <div class="two-column">
+                    <div>
+                        <h3 class="column-title">Vad den gör</h3>
+                        <ul class="bullet-list">
+                            <li><strong>Analyserar känslor</strong> – Anpassar svar efter kundens situation</li>
+                            <li><strong>Identifierar akuta ärenden</strong> – Lugnar, guidar och prioriterar</li>
+                            <li><strong>Anpassar sig efter företagston</strong> – Svarar som ni skulle ha svarat</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="column-title">Säljargument</h3>
+                        <div class="highlight-box" style="margin-top: 0;">
+                            <p class="highlight-text">"Känns som er personal. Era kunder märker inte att det är AI – de märker bara att de får snabb, vänlig hjälp."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 30: Samtals- och ärendehantering -->
+        <div class="slide" data-slide="30" data-chapter="5">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 5</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Samtals- och <span class="accent">ärendehantering</span></h2>
+                <p class="slide-subtitle">Mer än repetitiva samtal – riktiga ärenden som spelar roll.</p>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4 class="feature-title">📋 Komplext samtalshantering</h4>
+                        <p class="feature-description">Hanterar ärenden, support och befintliga kunder – inte bara enkla frågor.</p>
+                        <p class="feature-argument">→ "Tar samtal som faktiskt spelar roll"</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4 class="feature-title">❓ FAQ-hantering</h4>
+                        <p class="feature-description">Svarar på vanliga frågor, internt och externt. Uppdaterad data via integration.</p>
+                        <p class="feature-argument">→ "Frigör tid varje dag"</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4 class="feature-title">🎫 Ticketing-integration</h4>
+                        <p class="feature-description">Skapar, uppdaterar och prioriterar ärenden direkt i kundens system.</p>
+                        <p class="feature-argument">→ "Processer som skalar"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 31: Utgående samtal + Begränsningar -->
+        <div class="slide" data-slide="31" data-chapter="5">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 5</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Utgående samtal & <span class="accent">begränsningar</span></h2>
+                <p class="slide-subtitle">Vad vi kan – och vad vi medvetet väljer att inte göra.</p>
+                
+                <div class="two-column">
+                    <div>
+                        <h3 class="column-title">Uppringning</h3>
+                        <ul class="bullet-list">
+                            <li><strong>Kan ringa ut</strong> – Internt eller externt</li>
+                            <li><strong>Kräver manuell push</strong> – Företaget startar samtalet i appen</li>
+                            <li><strong>Varför?</strong> – Undviker missbruk och juridiska risker (kalla samtal)</li>
+                        </ul>
+                        <div class="highlight-box" style="margin-top: 20px;">
+                            <p class="highlight-text" style="font-size: 0.9rem;">"Kontroll + regelefterlevnad. Ni bestämmer vem som rings."</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="column-title">Begränsningar</h3>
+                        <ul class="bullet-list">
+                            <li><strong>Vi är nästan obegränsade</strong> – Kan optimera och anpassa allt</li>
+                            <li><strong>Den enda gränsen:</strong> Kundens system</li>
+                            <li>API-åtkomst + dokumenträttigheter avgör möjligheterna</li>
+                        </ul>
+                        <div class="highlight-box" style="margin-top: 20px;">
+                            <p class="highlight-text" style="font-size: 0.9rem;">"Vi skräddarsyr inom ramar – era system sätter gränsen, inte vår vilja."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 32: Quiz Kapitel 5 -->
+        <div class="slide" data-slide="32" data-chapter="5" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 5</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Kuggfråga</div>
+                        <p class="question-text">Varför är intentanalys "första steget" i samtalet?</p>
+                        <div class="answer-reveal" id="answer-5-1">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">Den styr rätt flöde direkt</p>
+                            <p class="answer-explanation">Rätt start ger rätt upplevelse. Om assistenten förstår syftet direkt, hamnar kunden i rätt hantering från sekund ett.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('5-1')">Visa svar</button>
+                    <div class="score-assignment" id="score-5-1">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 33: Quiz Kapitel 5 - Fråga 2 -->
+        <div class="slide" data-slide="33" data-chapter="5" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 5</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Scenario</div>
+                        <p class="question-text">Kunden oroar sig för att "AI känns kallt". Vad visar du?</p>
+                        <div class="answer-reveal" id="answer-5-2">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">Mänsklig ton + känsloanalys + företagsanpassning</p>
+                            <p class="answer-explanation">Bemötande är en kärnfeature. Assistenten anpassar sig efter känsla, situation och företagets ton. Det känns inte som en robot – det känns som er personal.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('5-2')">Visa svar</button>
+                    <div class="score-assignment" id="score-5-2">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 34: Quiz Kapitel 5 - Fråga 3 -->
+        <div class="slide" data-slide="34" data-chapter="5" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 5</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Kuggfråga</div>
+                        <p class="question-text">Varför krävs manuell push för utgående samtal?</p>
+                        <div class="answer-reveal" id="answer-5-3">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">För att undvika missbruk och juridiska risker</p>
+                            <p class="answer-explanation">Lagar ändras och kalla samtal är ett riskområde. Den manuella kontrollen skyddar både oss och kunden.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('5-3')">Visa svar</button>
+                    <div class="score-assignment" id="score-5-3">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== KAPITEL 6: KUNSKAPSBAS ==================== -->
+        
+        <!-- SLIDE 35: Chapter 6 Title -->
+        <div class="slide chapter-slide" data-slide="35" data-chapter="6">
+            <div class="chapter-number">06</div>
+            <h2 class="chapter-title">Kunskapsbas</h2>
+            <p class="chapter-description">Hur assistenten vet vad den vet</p>
+        </div>
+
+        <!-- SLIDE 36: Kunskapsbas -->
+        <div class="slide" data-slide="36" data-chapter="6">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 6</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Kunskapsbas <span class="accent">per kund</span></h2>
+                <p class="slide-subtitle">Varje assistent tränas på kundens specifika information.</p>
+                
+                <div class="two-column">
+                    <div>
+                        <h3 class="column-title">Vad kunskapsbasen innehåller</h3>
+                        <ul class="bullet-list">
+                            <li><strong>Kundens dokument</strong> – All företagsinformation som behövs</li>
+                            <li><strong>Exempel på hantering</strong> – Bra och dåliga svar för träning</li>
+                            <li><strong>Produkt- och prisdata</strong> – Via integration, alltid uppdaterad</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="column-title">Säljargument</h3>
+                        <div class="highlight-box" style="margin-top: 0;">
+                            <p class="highlight-text">"Vi fyller kunskapsbasen med era filer – snabb onboarding, bättre svar. Assistenten vet vad ni vet."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 37: Quiz Kapitel 6 -->
+        <div class="slide" data-slide="37" data-chapter="6" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 6</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Kuggfråga</div>
+                        <p class="question-text">Varför räcker inte alltid en FAQ-lista?</p>
+                        <div class="answer-reveal" id="answer-6-1">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">Data ändras (pris, lager, info)</p>
+                            <p class="answer-explanation">Systemkoppling håller svaren aktuella. En statisk FAQ blir snabbt gammal – integration ger alltid rätt svar.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('6-1')">Visa svar</button>
+                    <div class="score-assignment" id="score-6-1">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== KAPITEL 7: INTEGRATIONER ==================== -->
+        
+        <!-- SLIDE 38: Chapter 7 Title -->
+        <div class="slide chapter-slide" data-slide="38" data-chapter="7">
+            <div class="chapter-number">07</div>
+            <h2 class="chapter-title">Integrationer</h2>
+            <p class="chapter-description">Vad som krävs och vad det möjliggör</p>
+        </div>
+
+        <!-- SLIDE 39: API-krav -->
+        <div class="slide" data-slide="39" data-chapter="7">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 7</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">API – <span class="accent">grundkravet</span></h2>
+                <p class="slide-subtitle">Integration kräver ett API. Så här fungerar det.</p>
+                
+                <div class="content-grid">
+                    <div class="content-card">
+                        <div class="card-icon">🔓</div>
+                        <h3 class="card-title">Öppet API</h3>
+                        <p class="card-text">Enklast. Systemet tillåter alla att integrera. Vi kopplar direkt.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">🔑</div>
+                        <h3 class="card-title">API-nyckel</h3>
+                        <p class="card-text">En kod (52 tecken) som kunden ger oss. Vi skickar till utvecklarna.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">🔒</div>
+                        <h3 class="card-title">Stängt API</h3>
+                        <p class="card-text">Kräver kontakt med systemoperatören. Vi hjälper till med mejlkonversationen.</p>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <div class="highlight-title">⚠️ Viktigt att veta</div>
+                    <p class="highlight-text">Outlook-kalender kräver extern lösning (t.ex. Calendly). Ny integration kan ta upp till 1 månad att bygga.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 40: Vad integration ger -->
+        <div class="slide" data-slide="40" data-chapter="7">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 7</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Vad integration <span class="accent">möjliggör</span></h2>
+                <p class="slide-subtitle">Med full dokumenthantering kan assistenten göra allt i kundens system.</p>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4 class="feature-title">📝 Utföra uppgifter</h4>
+                        <p class="feature-description">Lägga in, hämta och ändra information direkt i kundens system.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4 class="feature-title">❓ Svara på systemfrågor</h4>
+                        <p class="feature-description">Lagerstatus, kunddata, prisinfo – allt som finns i systemet.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4 class="feature-title">📊 Samtalslogg + dataskick</h4>
+                        <p class="feature-description">Automatisk överföring till rätt system efter varje samtal.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 41: Quiz Kapitel 7 -->
+        <div class="slide" data-slide="41" data-chapter="7" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 7</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Kuggfråga</div>
+                        <p class="question-text">Vad avgör "hur mycket" assistenten kan göra i kundens system?</p>
+                        <div class="answer-reveal" id="answer-7-1">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">API-åtkomst + dokumenträttigheter</p>
+                            <p class="answer-explanation">Inte viljan – utan behörigheten. Det är kundens system som sätter gränserna, inte vår produkt.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('7-1')">Visa svar</button>
+                    <div class="score-assignment" id="score-7-1">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== KAPITEL 8: APPEN ==================== -->
+        
+        <!-- SLIDE 42: Chapter 8 Title -->
+        <div class="slide chapter-slide" data-slide="42" data-chapter="8">
+            <div class="chapter-number">08</div>
+            <h2 class="chapter-title">Assistent-appen</h2>
+            <p class="chapter-description">Hur kunden styr sin assistent</p>
+        </div>
+
+        <!-- SLIDE 43: Appen -->
+        <div class="slide" data-slide="43" data-chapter="8">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 8</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Kundens <span class="accent">kontrollpanel</span></h2>
+                <p class="slide-subtitle">En egen länk per kund – full kontroll över sin assistent.</p>
+                
+                <div class="content-grid">
+                    <div class="content-card">
+                        <div class="card-icon">⚙️</div>
+                        <h3 class="card-title">Optimera & prompta</h3>
+                        <p class="card-text">Kunden anpassar assistentens beteende och ton efter behov.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">📱</div>
+                        <h3 class="card-title">Se samtal</h3>
+                        <p class="card-text">Historik över alla samtal visas i appen (ingen samtalsinspelning).</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">📞</div>
+                        <h3 class="card-title">Pusha utgående samtal</h3>
+                        <p class="card-text">Kontrollerad funktion – kunden bestämmer vem som rings.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 44: Quiz Kapitel 8 -->
+        <div class="slide" data-slide="44" data-chapter="8" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 8</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Scenario</div>
+                        <p class="question-text">Kunden vill "ändra ton" på assistenten. Var görs det?</p>
+                        <div class="answer-reveal" id="answer-8-1">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">I appen via optimering/promptar</p>
+                            <p class="answer-explanation">Kunden har full kontroll. De kan själva styra beteende, ton och hantering direkt i sin app.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('8-1')">Visa svar</button>
+                    <div class="score-assignment" id="score-8-1">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== KAPITEL 9: IMPLEMENTERING ==================== -->
+        
+        <!-- SLIDE 45: Chapter 9 Title -->
+        <div class="slide chapter-slide" data-slide="45" data-chapter="9">
+            <div class="chapter-number">09</div>
+            <h2 class="chapter-title">Implementeringsprocess</h2>
+            <p class="chapter-description">Från start till referens</p>
+        </div>
+
+        <!-- SLIDE 46: Steg 1-3 -->
+        <div class="slide" data-slide="46" data-chapter="9">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 9</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Implementering <span class="accent">steg 1–3</span></h2>
+                <p class="slide-subtitle">Från onboarding till första versionen.</p>
+                
+                <div class="process-steps">
+                    <div class="process-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4 class="step-title">Onboarding-enkät</h4>
+                            <p class="step-description">Fylls i tillsammans med kunden. Tar cirka 20 minuter. Samlar all information som behövs för att bygga assistenten rätt från start.</p>
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4 class="step-title">Integration</h4>
+                            <p class="step-description">Vid behov löser vi API-koppling. Kontaktar systemoperatör vid stängt API. All dev-info skickas till utvecklare. Håll kommunikationen "Zen" – lugn, saklig, framåtdrivande.</p>
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4 class="step-title">Första versionen</h4>
+                            <p class="step-description">Vi sätter upp första versionen. Testar internt, samlar feedback via mejl. Låter kunden testa och ge input. Itererar tills det är rätt.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 47: Steg 4-6 -->
+        <div class="slide" data-slide="47" data-chapter="9">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 9</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Implementering <span class="accent">steg 4–6</span></h2>
+                <p class="slide-subtitle">Från lansering till kundcase.</p>
+                
+                <div class="process-steps">
+                    <div class="process-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4 class="step-title">Lansering</h4>
+                            <p class="step-description">Kopplar kundens växelnummer till assistenten. Alla samtal går direkt till assistenten. Smidig go-live utan tekniskt krångel.</p>
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">5</div>
+                        <div class="step-content">
+                            <h4 class="step-title">Uppföljning & referenser</h4>
+                            <p class="step-description">Sätter mätbara resultat kopplade till kundens smärtor. Kvartalsvis uppföljning för att bevisa värde. Bygger tillit som öppnar för merförsäljning och referenser.</p>
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">6</div>
+                        <div class="step-content">
+                            <h4 class="step-title">Kundcase (efter 6 månader)</h4>
+                            <p class="step-description">Bygger case + video. Kopplar ihop nöjda kunder med varandra. Skapar affärer, kontakter och högre tillit. Tar extra referens när förtroendet är högt.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 48: Quiz Kapitel 9 -->
+        <div class="slide" data-slide="48" data-chapter="9" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 9</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Kuggfråga</div>
+                        <p class="question-text">Varför är kvartalsmöten mer än "support"?</p>
+                        <div class="answer-reveal" id="answer-9-1">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">De skapar referenser + merförsäljning + bevisat värde</p>
+                            <p class="answer-explanation">Uppföljning blir en säljmotor. Varje möte bygger bevis som leder till nya affärer – både från kunden och via deras nätverk.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('9-1')">Visa svar</button>
+                    <div class="score-assignment" id="score-9-1">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 49: Quiz Kapitel 9 - Fråga 2 -->
+        <div class="slide" data-slide="49" data-chapter="9" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 9</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Scenario</div>
+                        <p class="question-text">Kunden är nöjd efter 2 månader. Ber du om referens då?</p>
+                        <div class="answer-reveal" id="answer-9-2">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">Nej – bygg först mätbara resultat och tillit</p>
+                            <p class="answer-explanation">Referensfrågan landar bäst efter bevis. Vänta tills du kan visa konkreta siffror och kunden verkligen har känt värdet.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('9-2')">Visa svar</button>
+                    <div class="score-assignment" id="score-9-2">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== KAPITEL 10: AVTALSPROCESS ==================== -->
+        
+        <!-- SLIDE 50: Chapter 10 Title -->
+        <div class="slide chapter-slide" data-slide="50" data-chapter="10">
+            <div class="chapter-number">10</div>
+            <h2 class="chapter-title">Avtalsprocess</h2>
+            <p class="chapter-description">Från offert till betalning</p>
+        </div>
+
+        <!-- SLIDE 51: Steg 1-3 -->
+        <div class="slide" data-slide="51" data-chapter="10">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Kapitel 10</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Avtalsflödet <span class="accent">steg för steg</span></h2>
+                <p class="slide-subtitle">Tre steg från offert till utbetalning.</p>
+                
+                <div class="process-steps">
+                    <div class="process-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4 class="step-title">Signera offerten</h4>
+                            <p class="step-description">Allt ska ingå: tjänster, produkter, hårdvara, mobilabonnemang. Inget får vara oklart eller saknas i offerten.</p>
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4 class="step-title">Siemens-flödet</h4>
+                            <p class="step-description">Skicka offerten till Zen → Zen skickar till Siemens → Kreditgodkännande → Kunden signerar Siemens-avtal.</p>
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4 class="step-title">Leveransbekräftelse (LG)</h4>
+                            <p class="step-description">Siemens skickar LG efter leverans. Kunden signerar LG – detta triggar utbetalning till oss. Skickas separat från avtalet.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <div class="highlight-title">⚠️ Kritiskt att förstå</div>
+                    <p class="highlight-text">Avtal räcker inte – LG behövs för att vi ska få betalt. Se till att kunden förstår att LG är en standarddel av flödet.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 52: Quiz Kapitel 10 -->
+        <div class="slide" data-slide="52" data-chapter="10" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 10</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Kuggfråga</div>
+                        <p class="question-text">Vad triggar utbetalning från Siemens?</p>
+                        <div class="answer-reveal" id="answer-10-1">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">Signerad LG (leveransbekräftelse)</p>
+                            <p class="answer-explanation">Avtal räcker inte. LG bekräftar att leveransen är genomförd och är det som utlöser betalningen.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('10-1')">Visa svar</button>
+                    <div class="score-assignment" id="score-10-1">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 53: Quiz Kapitel 10 - Fråga 2 -->
+        <div class="slide" data-slide="53" data-chapter="10" data-quiz="true">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Quiz</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <div class="quiz-container">
+                    <div class="quiz-header">
+                        <span class="quiz-badge">Quiz – Kapitel 10</span>
+                        <h2 class="quiz-title">Testa din förståelse</h2>
+                    </div>
+
+                    <div class="quiz-question">
+                        <div class="question-type">Scenario</div>
+                        <p class="question-text">Kunden har signerat offert och Siemens-avtal men tvekar på LG. Vad säger du?</p>
+                        <div class="answer-reveal" id="answer-10-2">
+                            <div class="answer-label">Svar</div>
+                            <p class="answer-text">"LG bekräftar leverans så finanspartnern kan betala ut"</p>
+                            <p class="answer-explanation">Det är en standarddel i flödet. Förklara lugnt att LG är sista steget som bekräftar att allt är levererat – inget konstigt med det.</p>
+                        </div>
+                    </div>
+                    <button class="reveal-btn" onclick="revealAnswer('10-2')">Visa svar</button>
+                    <div class="score-assignment" id="score-10-2">
+                        <span style="color: var(--text-secondary); margin-right: 8px;">Vem svarade rätt först?</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== BONUS: RAPPORTER & ML ==================== -->
+        
+        <!-- SLIDE 54: Bonus Chapter Title -->
+        <div class="slide chapter-slide" data-slide="54" data-chapter="bonus">
+            <div class="chapter-number">+</div>
+            <h2 class="chapter-title">Rapporter & Machine Learning</h2>
+            <p class="chapter-description">Djupare insikter och kontinuerlig förbättring</p>
+        </div>
+
+        <!-- SLIDE 55: Rapporter -->
+        <div class="slide" data-slide="55" data-chapter="bonus">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Bonus</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title"><span class="accent">Rapporter</span> och analys</h2>
+                <p class="slide-subtitle">Data som driver beslut.</p>
+                
+                <div class="content-grid">
+                    <div class="content-card">
+                        <div class="card-icon">📊</div>
+                        <h3 class="card-title">Trendanalyser</h3>
+                        <p class="card-text">Se mönster över tid. Vilka dagar, vilka tider, vilka typer av samtal.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">👤</div>
+                        <h3 class="card-title">Vem ringer</h3>
+                        <p class="card-text">Statistik på inringare. Nya vs återkommande. Geografisk spridning.</p>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-icon">❓</div>
+                        <h3 class="card-title">Varför de ringer</h3>
+                        <p class="card-text">Intent-fördelning. Vanligaste frågorna. Identifiera mönster i behov.</p>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <div class="highlight-title">💡 Säljargument</div>
+                    <p class="highlight-text">"Datadrivna beslut. Sluta gissa vad kunderna vill – vi visar exakt vad som händer i er telefoni."</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 56: Machine Learning -->
+        <div class="slide" data-slide="56" data-chapter="bonus">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Bonus</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title">Machine <span class="accent">Learning</span></h2>
+                <p class="slide-subtitle">En hjärna som lär sig – och blir bättre för varje kund.</p>
+                
+                <div class="two-column">
+                    <div>
+                        <h3 class="column-title">Utan ML</h3>
+                        <ul class="bullet-list">
+                            <li>Roboten är exakt programmerad</li>
+                            <li>Styrd av tydliga regler</li>
+                            <li>Förbättras bara genom ny kod</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="column-title">Med ML</h3>
+                        <ul class="bullet-list">
+                            <li>Lär av tusentals exempel</li>
+                            <li>Hittar mönster automatiskt</li>
+                            <li>Skapar svar anpassade till kunden</li>
+                            <li>Förbättras kontinuerligt</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <div class="highlight-title">🧠 Det bästa</div>
+                    <p class="highlight-text">Nya assistenter börjar inte från noll. Alla lärdomar följer med mellan kunder – men endast beteenden, aldrig kunddata. Tänk: en hjärna med många händer.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 57: Final Slide -->
+        <div class="slide chapter-slide" data-slide="57" data-chapter="final">
+            <img src="logo.png" alt="Telink" style="width: 180px; margin-bottom: 40px;">
+            <h2 class="chapter-title">Tack för idag!</h2>
+            <p class="chapter-description">Ni är nu redo att sälja AI-Assistenten med trygghet och precision.</p>
+        </div>
+
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-controls" id="navControls">
+        <button class="nav-btn" id="prevBtn" onclick="prevSlide()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6"/>
+            </svg>
+            Föregående
+        </button>
+        <button class="nav-btn" id="nextBtn" onclick="nextSlide()">
+            Nästa
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        // State
+        let currentSlide = 1;
+        let participants = [];
+        let scores = {};
+        const totalSlides = 57;
+
+        // DOM Elements
+        const setupScreen = document.getElementById('setupScreen');
+        const presentation = document.getElementById('presentation');
+        const leaderboard = document.getElementById('leaderboard');
+        const leaderboardList = document.getElementById('leaderboardList');
+        const participantInputs = document.getElementById('participantInputs');
+        const navControls = document.getElementById('navControls');
+
+        // Add participant
+        document.getElementById('addParticipant').addEventListener('click', () => {
+            const count = participantInputs.children.length;
+            if (count < 10) {
+                const row = document.createElement('div');
+                row.className = 'participant-input-row';
+                row.innerHTML = `
+                    <span class="participant-number">${count + 1}</span>
+                    <input type="text" class="participant-input" placeholder="Deltagarens namn" data-index="${count}">
+                `;
+                participantInputs.appendChild(row);
+            }
+        });
+
+        // Start presentation
+        document.getElementById('startPresentation').addEventListener('click', () => {
+            const inputs = document.querySelectorAll('.participant-input');
+            participants = [];
+            inputs.forEach(input => {
+                const name = input.value.trim();
+                if (name) {
+                    participants.push(name);
+                    scores[name] = 0;
+                }
+            });
+
+            if (participants.length < 1) {
+                alert('Lägg till minst en deltagare');
+                return;
+            }
+
+            setupScreen.classList.add('hidden');
+            presentation.classList.add('active');
+            navControls.style.display = 'flex';
+            
+            updateLeaderboard();
+            showSlide(1);
+        });
+
+        // Show slide
+        function showSlide(num) {
+            document.querySelectorAll('.slide').forEach(slide => {
+                slide.classList.remove('active', 'prev');
+            });
+
+            const targetSlide = document.querySelector(`[data-slide="${num}"]`);
+            if (targetSlide) {
+                targetSlide.classList.add('active');
+                currentSlide = num;
+
+                // Show leaderboard on quiz slides
+                const isQuiz = targetSlide.dataset.quiz === 'true';
+                if (isQuiz) {
+                    leaderboard.classList.add('visible');
+                } else {
+                    leaderboard.classList.remove('visible');
+                }
+
+                // Update nav buttons
+                document.getElementById('prevBtn').disabled = currentSlide === 1;
+                document.getElementById('nextBtn').disabled = currentSlide === totalSlides;
+            }
+        }
+
+        // Navigation
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                const prevSlide = document.querySelector(`[data-slide="${currentSlide}"]`);
+                prevSlide.classList.add('prev');
+                showSlide(currentSlide + 1);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 1) {
+                showSlide(currentSlide - 1);
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (setupScreen.classList.contains('hidden')) {
+                if (e.key === 'ArrowRight' || e.key === ' ') {
+                    e.preventDefault();
+                    nextSlide();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    prevSlide();
+                }
+            }
+        });
+
+        // Reveal answer
+        function revealAnswer(id) {
+            const answer = document.getElementById(`answer-${id}`);
+            const btn = answer.previousElementSibling.previousElementSibling;
+            const scoreDiv = document.getElementById(`score-${id}`);
+
+            answer.classList.add('visible');
+            btn.classList.add('hidden');
+            scoreDiv.classList.add('visible');
+
+            // Add participant buttons
+            participants.forEach(name => {
+                const existingBtns = scoreDiv.querySelectorAll('.score-btn');
+                if (existingBtns.length === 0 || !Array.from(existingBtns).some(b => b.textContent === name)) {
+                    const scoreBtn = document.createElement('button');
+                    scoreBtn.className = 'score-btn';
+                    scoreBtn.textContent = name;
+                    scoreBtn.onclick = () => addScore(name, id);
+                    scoreDiv.appendChild(scoreBtn);
+                }
+            });
+        }
+
+        // Add score
+        function addScore(name, questionId) {
+            const scoreDiv = document.getElementById(`score-${questionId}`);
+            const buttons = scoreDiv.querySelectorAll('.score-btn');
+            
+            buttons.forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.textContent === name) {
+                    btn.classList.add('selected');
+                }
+            });
+
+            // Reset previous score for this question and add new
+            const questionKey = `q_${questionId}`;
+            if (window[questionKey]) {
+                scores[window[questionKey]]--;
+            }
+            window[questionKey] = name;
+            scores[name]++;
+
+            updateLeaderboard();
+        }
+
+        // Update leaderboard
+        function updateLeaderboard() {
+            const sorted = Object.entries(scores)
+                .sort((a, b) => b[1] - a[1]);
+
+            leaderboardList.innerHTML = sorted
+                .map(([name, score]) => `
+                    <li class="leaderboard-item">
+                        <span class="leaderboard-name">${name}</span>
+                        <span class="leaderboard-score">${score} p</span>
+                    </li>
+                `)
+                .join('');
+        }
+
+        // Initialize
+        showSlide(1);
+        navControls.style.display = 'none';
+    </script>
+</body>
+</html>
