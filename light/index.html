@@ -997,6 +997,44 @@
             width: 200px;
             margin-bottom: 60px;
         }
+
+        /* Fullscreen Button */
+        .fullscreen-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: var(--accent);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .fullscreen-btn.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .fullscreen-btn:hover {
+            transform: scale(1.1);
+            background: var(--accent-bright);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .fullscreen-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
     </style>
 </head>
 <body>
@@ -2685,6 +2723,12 @@
 
     </div>
 
+    <!-- Fullscreen Button -->
+    <button class="fullscreen-btn" id="fullscreenBtn" title="Fullskärm (F)">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+        </svg>
+    </button>
 
     <script>
         // State
@@ -2701,6 +2745,43 @@
         const leaderboardList = document.getElementById('leaderboardList');
         const participantInputs = document.getElementById('participantInputs');
         const navControls = document.getElementById('navControls');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+        // Fullscreen functionality
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Update fullscreen button icon based on state
+        function updateFullscreenButton() {
+            const isFullscreen = !!document.fullscreenElement;
+            fullscreenBtn.innerHTML = isFullscreen
+                ? '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>'
+                : '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>';
+        }
+
+        // Fullscreen button click
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+        // Listen for fullscreen changes
+        document.addEventListener('fullscreenchange', updateFullscreenButton);
+
+        // Keyboard shortcut for fullscreen (F key)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'f' || e.key === 'F') {
+                if (!setupScreen.classList.contains('hidden')) return; // Don't trigger on setup screen
+                e.preventDefault();
+                toggleFullscreen();
+            }
+        });
 
         // Add participant
         document.getElementById('addParticipant').addEventListener('click', () => {
@@ -2736,7 +2817,8 @@
             setupScreen.classList.add('hidden');
             presentation.classList.add('active');
             navControls.style.display = 'flex';
-            
+            fullscreenBtn.classList.add('visible');
+
             updateLeaderboard();
             showSlide(1);
         });
