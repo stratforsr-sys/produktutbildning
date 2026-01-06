@@ -390,6 +390,27 @@
             border-top: 3px solid var(--success);
         }
 
+        .step-hidden {
+            display: none;
+            opacity: 0;
+        }
+
+        .step-visible {
+            display: block;
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .ps-header {
             font-size: 0.75rem;
             text-transform: uppercase;
@@ -1266,7 +1287,7 @@
         </div>
 
         <!-- SLIDE 12: Kommunikationsproblem -->
-        <div class="slide" data-slide="12" data-chapter="3">
+        <div class="slide" data-slide="12" data-chapter="3" data-substeps="3">
             <div class="slide-header">
                 <img src="logo.png" alt="Telink" class="slide-logo">
                 <div class="slide-meta">
@@ -1276,9 +1297,9 @@
             <div class="slide-content">
                 <h2 class="slide-title"><span class="accent">Kommunikations</span>problem</h2>
                 <p class="slide-subtitle">Det första företag märker – men sällan mäter.</p>
-                
+
                 <div class="problem-solution-grid">
-                    <div class="ps-column symptom">
+                    <div class="ps-column symptom step-hidden" data-step="1">
                         <div class="ps-header">Symptom</div>
                         <ul class="ps-list">
                             <li>Oprofessionellt intryck</li>
@@ -1287,7 +1308,7 @@
                             <li>Ingen backup vid sjukdom/semester</li>
                         </ul>
                     </div>
-                    <div class="ps-column consequence">
+                    <div class="ps-column consequence step-hidden" data-step="2">
                         <div class="ps-header">Konsekvenser</div>
                         <ul class="ps-list">
                             <li>Intäktsförluster</li>
@@ -1296,7 +1317,7 @@
                             <li>Förlorade affärer</li>
                         </ul>
                     </div>
-                    <div class="ps-column solution">
+                    <div class="ps-column solution step-hidden" data-step="3">
                         <div class="ps-header">Vår lösning</div>
                         <ul class="ps-list">
                             <li>Svarar direkt, dygnet runt</li>
@@ -2668,6 +2689,7 @@
     <script>
         // State
         let currentSlide = 1;
+        let currentSubstep = 0;
         let participants = [];
         let scores = {};
         const totalSlides = 57;
@@ -2729,6 +2751,13 @@
             if (targetSlide) {
                 targetSlide.classList.add('active');
                 currentSlide = num;
+                currentSubstep = 0;
+
+                // Reset substeps - hide all step elements
+                targetSlide.querySelectorAll('.step-hidden, .step-visible').forEach(el => {
+                    el.classList.remove('step-visible');
+                    el.classList.add('step-hidden');
+                });
 
                 // Show leaderboard on quiz slides
                 const isQuiz = targetSlide.dataset.quiz === 'true';
@@ -2738,17 +2767,31 @@
                     leaderboard.classList.remove('visible');
                 }
 
-                // Update nav buttons
-                document.getElementById('prevBtn').disabled = currentSlide === 1;
-                document.getElementById('nextBtn').disabled = currentSlide === totalSlides;
+                // Update nav buttons (if they exist)
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+                if (prevBtn) prevBtn.disabled = currentSlide === 1;
+                if (nextBtn) nextBtn.disabled = currentSlide === totalSlides;
             }
         }
 
         // Navigation
         function nextSlide() {
-            if (currentSlide < totalSlides) {
-                const prevSlide = document.querySelector(`[data-slide="${currentSlide}"]`);
-                prevSlide.classList.add('prev');
+            const currentSlideEl = document.querySelector(`[data-slide="${currentSlide}"]`);
+            const totalSubsteps = parseInt(currentSlideEl?.dataset.substeps || 0);
+
+            // If slide has substeps and we haven't shown them all yet
+            if (totalSubsteps > 0 && currentSubstep < totalSubsteps) {
+                currentSubstep++;
+                const stepElement = currentSlideEl.querySelector(`[data-step="${currentSubstep}"]`);
+                if (stepElement) {
+                    stepElement.classList.remove('step-hidden');
+                    stepElement.classList.add('step-visible');
+                }
+            }
+            // Otherwise, move to next slide
+            else if (currentSlide < totalSlides) {
+                currentSlideEl.classList.add('prev');
                 showSlide(currentSlide + 1);
             }
         }
