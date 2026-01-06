@@ -1035,6 +1035,77 @@
             height: 24px;
             fill: white;
         }
+
+        /* Final Scoreboard */
+        .final-score-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.2s ease;
+        }
+
+        .final-score-item:hover {
+            transform: translateX(4px);
+        }
+
+        .final-score-item.winner {
+            background: linear-gradient(135deg, var(--accent-dim) 0%, var(--bg-secondary) 100%);
+            border-color: var(--accent);
+        }
+
+        .final-score-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .final-score-rank {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            min-width: 40px;
+        }
+
+        .final-score-item.winner .final-score-rank {
+            color: var(--accent);
+        }
+
+        .final-score-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .final-score-points {
+            background: var(--accent-dim);
+            color: var(--accent);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .final-score-item.winner .final-score-points {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .winner-badge {
+            background: var(--accent);
+            color: var(--bg-primary);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 12px;
+        }
     </style>
 </head>
 <body>
@@ -2714,8 +2785,26 @@
             </div>
         </div>
 
-        <!-- SLIDE 57: Final Slide -->
-        <div class="slide chapter-slide" data-slide="57" data-chapter="final">
+        <!-- SLIDE 57: Results -->
+        <div class="slide" data-slide="57" data-chapter="final">
+            <div class="slide-header">
+                <img src="logo.png" alt="Telink" class="slide-logo">
+                <div class="slide-meta">
+                    <span class="chapter-badge">Resultat</span>
+                </div>
+            </div>
+            <div class="slide-content">
+                <h2 class="slide-title"><span class="accent">Resultat</span></h2>
+                <p class="slide-subtitle">Grattis till alla deltagare!</p>
+
+                <div id="finalScoreboard" style="max-width: 600px; margin: 40px auto;">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 58: Final Slide -->
+        <div class="slide chapter-slide" data-slide="58" data-chapter="final">
             <img src="logo.png" alt="Telink" style="width: 180px; margin-bottom: 40px;">
             <h2 class="chapter-title">Tack för idag!</h2>
             <p class="chapter-description">Ni är nu redo att sälja AI-Assistenten med trygghet och precision.</p>
@@ -2736,7 +2825,7 @@
         let currentSubstep = 0;
         let participants = [];
         let scores = {};
-        const totalSlides = 57;
+        const totalSlides = 58;
 
         // DOM Elements
         const setupScreen = document.getElementById('setupScreen');
@@ -2849,6 +2938,11 @@
                     leaderboard.classList.remove('visible');
                 }
 
+                // Show final scoreboard on slide 57
+                if (num === 57) {
+                    displayFinalScoreboard();
+                }
+
                 // Update nav buttons (if they exist)
                 const prevBtn = document.getElementById('prevBtn');
                 const nextBtn = document.getElementById('nextBtn');
@@ -2955,6 +3049,33 @@
                         <span class="leaderboard-score">${score} p</span>
                     </li>
                 `)
+                .join('');
+        }
+
+        // Display final scoreboard
+        function displayFinalScoreboard() {
+            const sorted = Object.entries(scores)
+                .sort((a, b) => b[1] - a[1]);
+
+            const scoreboard = document.getElementById('finalScoreboard');
+            if (!scoreboard) return;
+
+            scoreboard.innerHTML = sorted
+                .map(([name, score], index) => {
+                    const isWinner = index === 0;
+                    return `
+                        <div class="final-score-item ${isWinner ? 'winner' : ''}">
+                            <div class="final-score-left">
+                                <div class="final-score-rank">${index + 1}</div>
+                                <div class="final-score-name">
+                                    ${name}
+                                    ${isWinner ? '<span class="winner-badge">Vinnare</span>' : ''}
+                                </div>
+                            </div>
+                            <div class="final-score-points">${score} p</div>
+                        </div>
+                    `;
+                })
                 .join('');
         }
 
